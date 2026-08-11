@@ -1,6 +1,13 @@
-# Cloudflare Pages config for `wrangler pages deploy`.
-# The site is a single static file served from the repo root, so the build
-# output directory IS the root.
+# Cloudflare deploy config.
+#
+# This is a static site served via Cloudflare Workers Static Assets: there is
+# no Worker script — `wrangler deploy` (the command Cloudflare's build runs)
+# uploads the directory below and serves the files directly. Free tier covers
+# static-asset requests.
 name = "for-me-charts"
 compatibility_date = "2026-08-11"
-pages_build_output_dir = "."
+
+[assets]
+directory = "./"
+# Serve index.html at "/"; return a clean 404 for anything else.
+not_found_handling = "none"

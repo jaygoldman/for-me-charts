@@ -53,9 +53,9 @@ No test suite — verify by hand in a browser (`open index.html`). Confirm: line
 
 ## Deploy
 
-Static site on **Cloudflare Pages** via **Git integration**: Cloudflare auto-builds on push to `main` (framework preset None, blank build command, output dir `/`) and gives each PR a preview URL — no CI secrets. `wrangler.toml` is kept for anyone who prefers a manual `wrangler pages deploy`. See `README.md` for full steps and the CI alternative.
+Deployed as a **Cloudflare Worker using Static Assets** (not classic Pages). There is no Worker script — `wrangler.toml` has an `[assets]` block pointing at the repo root, and Cloudflare's build runs **`npx wrangler deploy`** to upload and serve the files. `.assetsignore` keeps repo meta files (README, LICENSE, wrangler.toml, etc.) from being served. Every push to `main` redeploys. **Don't switch the deploy command to `wrangler pages deploy`** — that targets a different resource type. See `README.md` for setup.
 
-Custom domain `formecharts.jaygoldman.com` is set in the Pages project's **Custom domains** tab (the zone is on Cloudflare, so the CNAME + cert are automatic).
+Custom domain `formecharts.jaygoldman.com` is attached to the Worker (**Settings → Domains & Routes**); the zone is on Cloudflare, so the DNS record + cert are automatic.
 
 ## Conventions
 

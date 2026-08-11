@@ -1,0 +1,8 @@
+# Repo files that shouldn't be served as part of the site (gitignore syntax).
+.git
+.gitignore
+.assetsignore
+wrangler.toml
+README.md
+CLAUDE.md
+LICENSE

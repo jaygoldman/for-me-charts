@@ -37,33 +37,23 @@ open index.html
 
 ## Deploy to Cloudflare Pages (zero cost)
 
-This project deploys via **Cloudflare Pages Git integration** — Cloudflare builds on every push and gives each PR a preview URL, with no CI secrets to manage.
+This project deploys as a **Cloudflare Worker using Static Assets** — there is no Worker script; `wrangler deploy` uploads the repo directory (`[assets]` in `wrangler.toml`) and Cloudflare serves the files directly. Static-asset requests are free.
 
-1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
-2. Choose the `jaygoldman/for-me-charts` repo.
-3. Build settings:
-   - **Project name:** `for-me-charts`
-   - **Production branch:** `main`
-   - **Framework preset:** `None`
-   - **Build command:** *(leave blank)*
-   - **Build output directory:** `/`
-4. **Save and Deploy.** Production lands at `https://for-me-charts.pages.dev`; pushes to `main` redeploy it, and pull requests get their own preview URLs.
+Connect the repo once (Workers Builds):
 
-<details>
-<summary>Alternative: deploy via CI (GitHub Actions) instead of Git integration</summary>
+1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Import a repository** → choose `jaygoldman/for-me-charts`.
+2. Leave the **build command** blank and the **deploy command** as **`npx wrangler deploy`** (the default). `wrangler.toml` supplies the project name and assets directory.
+3. **Save and Deploy.** Every push to `main` redeploys; pull requests get preview URLs.
 
-If you'd rather have CI own deploys, don't connect the repo above. Instead create the project once with `npx wrangler pages project create for-me-charts --production-branch main`, add repo secrets `CLOUDFLARE_API_TOKEN` (token with **Cloudflare Pages: Edit**) and `CLOUDFLARE_ACCOUNT_ID`, and add a workflow that runs `wrangler pages deploy . --project-name=for-me-charts` on push to `main`. Don't run both this and Git integration — they'd double-deploy.
-</details>
+> **Deploy command must be `npx wrangler deploy`, not `npx wrangler pages deploy`.** This is a Worker (Static Assets) project, not a classic Pages project, so the Pages command would target a different, non-existent resource.
 
 ### Custom domain — `formecharts.jaygoldman.com`
 
-Since `jaygoldman.com` is on Cloudflare, this is a few clicks:
+Since `jaygoldman.com` is on Cloudflare, attach the domain to the Worker:
 
-1. Open the **for-me-charts** Pages project → **Custom domains** → **Set up a custom domain**.
-2. Enter `formecharts.jaygoldman.com` → **Continue** → **Activate domain**.
-3. Cloudflare automatically adds the `CNAME` record (`formecharts` → the project's `*.pages.dev` hostname) in the `jaygoldman.com` zone and provisions the SSL certificate. Live within a minute or two.
-
-If the domain's DNS is **not** on Cloudflare, add a `CNAME` record for `formecharts` pointing at `for-me-charts.pages.dev` at your DNS provider, then complete the domain verification in the Pages dashboard.
+1. Open the **for-me-charts** Worker → **Settings → Domains & Routes** → **Add → Custom domain**.
+2. Enter `formecharts.jaygoldman.com` → **Add domain**.
+3. Cloudflare adds the DNS record in the `jaygoldman.com` zone and provisions the SSL certificate automatically. Live within a minute or two.
 
 ## License
 
