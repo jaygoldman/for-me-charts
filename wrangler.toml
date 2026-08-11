@@ -1,0 +1,6 @@
+# Cloudflare Pages config for `wrangler pages deploy`.
+# The site is a single static file served from the repo root, so the build
+# output directory IS the root.
+name = "for-me-charts"
+compatibility_date = "2026-08-11"
+pages_build_output_dir = "."

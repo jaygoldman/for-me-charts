@@ -1,0 +1,39 @@
+name: Deploy to Cloudflare Pages
+
+# Deploys the site to Cloudflare Pages on every push to `main`
+# (i.e. after a pull request is merged). Preview builds are produced for
+# pull requests so you can review a live URL before merging.
+#
+# Prerequisites (one-time):
+#   1. A Cloudflare Pages project named `for-me-charts` must exist. Create it
+#      in the dashboard, or with: `wrangler pages project create for-me-charts`
+#   2. Two GitHub repo secrets:
+#        CLOUDFLARE_API_TOKEN   - a token with the "Cloudflare Pages: Edit" permission
+#        CLOUDFLARE_ACCOUNT_ID  - your Cloudflare account ID
+#
+# NOTE: If instead you connect this GitHub repo directly in the Cloudflare Pages
+# dashboard (Git integration), Cloudflare handles deploys and PR previews for you
+# and this workflow is unnecessary — use one approach or the other, not both.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy . --project-name=for-me-charts --branch=${{ github.head_ref || github.ref_name }}

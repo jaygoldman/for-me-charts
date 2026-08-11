@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>For / Not For Me — life-preference chart maker</title>
+<meta name="description" content="Make your own 'Not Everything Is For You' style life-preference charts. Drag to draw, download a PNG. Free.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root{
+    --ink:#1f2430; --muted:#6b7280; --panel:#ffffff; --page:#f4f1ea;
+    --border:#e4ddcf; --accent:#e4572e; --accent-ink:#fff; --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:var(--page); line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{padding:22px 20px 8px; max-width:1180px; margin:0 auto}
+  h1{margin:0; font-size:clamp(22px,3.4vw,32px); letter-spacing:-.02em}
+  .credit{margin:4px 0 0; color:var(--muted); font-size:14px}
+  .credit a{color:var(--accent); font-weight:600; text-decoration:none}
+  .credit a:hover{text-decoration:underline}
+  main{
+    max-width:1180px; margin:0 auto; padding:12px 20px 60px;
+    display:grid; grid-template-columns:320px 1fr; gap:22px; align-items:start;
+  }
+  @media (max-width:860px){ main{grid-template-columns:1fr} }
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px}
+  /* Sticky only in the two-column layout; when stacked, it would overlap the chart. */
+  @media (min-width:861px){ .controls{position:sticky; top:12px} }
+  .controls h2{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:2px 0 10px}
+  .field{margin-bottom:12px}
+  .field > label{display:block; font-size:13px; font-weight:600; margin-bottom:4px}
+  .field input[type=text], .field input[type=number]{
+    width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font:inherit; background:#fff;
+  }
+  .row{display:flex; gap:10px}
+  .row > .field{flex:1; margin-bottom:12px}
+  .slider-row{display:flex; align-items:center; gap:10px}
+  .slider-row input[type=range]{flex:1}
+  .slider-row output{min-width:22px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted)}
+  .colors{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .color{display:flex; align-items:center; gap:8px; font-size:13px}
+  .color input[type=color]{width:34px; height:30px; padding:0; border:1px solid var(--border); border-radius:6px; background:#fff; cursor:pointer}
+  .presets{display:flex; flex-wrap:wrap; gap:8px}
+  .presets button{
+    border:1px solid var(--border); background:#fff; border-radius:999px; padding:6px 12px;
+    font:inherit; font-size:13px; cursor:pointer;
+  }
+  .presets button:hover{border-color:var(--accent); color:var(--accent)}
+  hr{border:none; border-top:1px solid var(--border); margin:16px 0}
+  .chartcard{padding:10px}
+  .chart-wrap{width:100%; border-radius:8px; overflow:hidden}
+  svg#chart{display:block; width:100%; height:auto; touch-action:none; user-select:none}
+  .handle{cursor:grab; opacity:.55; transition:opacity .12s}
+  svg#chart:hover .handle{opacity:1}
+  .handle:active{cursor:grabbing}
+  .handle:focus{outline:none}
+  .hint{margin:8px 2px 0; font-size:12.5px; color:var(--muted)}
+  .actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+  .btn{
+    border:1px solid var(--border); background:#fff; color:var(--ink); border-radius:8px;
+    padding:9px 14px; font:inherit; font-weight:600; cursor:pointer; font-size:14px;
+  }
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+  .btn.primary:hover{filter:brightness(.95)}
+  .toast{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:#fff; padding:10px 16px; border-radius:999px; font-size:14px;
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:50;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  footer{max-width:1180px; margin:0 auto; padding:0 20px 40px; color:var(--muted); font-size:13px}
+  footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>For / Not For Me</h1>
+  <p class="credit">Make your own life-preference chart. Inspired by
+    <a href="https://tyfromtheinternet.com/not-everything-is-for-you/" target="_blank" rel="noopener">Ty from the Internet — “Not Everything Is For You”</a>.
+  </p>
+</header>
+
+<main>
+  <!-- ============ CONTROLS ============ -->
+  <aside class="panel controls">
+    <h2>Chart</h2>
+    <div class="field">
+      <label for="c-title">Title</label>
+      <input id="c-title" type="text" autocomplete="off">
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="c-emoji">Emoji</label>
+        <input id="c-emoji" type="text" autocomplete="off" maxlength="4">
+      </div>
+      <div class="field">
+        <label for="c-maxage">Max age</label>
+        <input id="c-maxage" type="number" min="1" max="130" step="1">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Detail (handles): <span id="c-cols-label"></span></label>
+      <div class="slider-row">
+        <input id="c-cols" type="range" min="3" max="20" step="1">
+        <output id="c-cols-out"></output>
+      </div>
+    </div>
+
+    <h2 style="margin-top:6px">Axis labels</h2>
+    <div class="row">
+      <div class="field"><label for="c-ytop">Y top</label><input id="c-ytop" type="text" autocomplete="off"></div>
+      <div class="field"><label for="c-ybot">Y bottom</label><input id="c-ybot" type="text" autocomplete="off"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="c-xleft">X start</label><input id="c-xleft" type="text" autocomplete="off"></div>
+      <div class="field"><label for="c-xright">X title</label><input id="c-xright" type="text" autocomplete="off"></div>
+    </div>
+
+    <h2 style="margin-top:6px">Colors</h2>
+    <div class="colors">
+      <label class="color"><input id="c-bg" type="color"> Background</label>
+      <label class="color"><input id="c-grid" type="color"> Grid</label>
+      <label class="color"><input id="c-line" type="color"> Line</label>
+      <label class="color"><input id="c-text" type="color"> Text</label>
+    </div>
+
+    <hr>
+    <h2>Start from a preset</h2>
+    <div class="presets" id="presets"></div>
+  </aside>
+
+  <!-- ============ CHART + ACTIONS ============ -->
+  <section class="panel chartcard">
+    <div class="chart-wrap">
+      <svg id="chart" viewBox="0 0 900 600" role="img" aria-label="Editable life-preference chart"></svg>
+    </div>
+    <p class="hint">Drag a handle up or down to draw. <strong>Click a handle</strong> to toggle a sharp corner (for abrupt changes). Focus a handle and use ↑/↓ to nudge.</p>
+    <div class="actions">
+      <button class="btn primary" id="dl-png">Download PNG</button>
+      <button class="btn" id="dl-svg">Download SVG</button>
+      <button class="btn" id="copy-img">Copy image</button>
+      <button class="btn" id="copy-link">Copy share link</button>
+      <button class="btn" id="reset">Reset</button>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Runs entirely in your browser — nothing is uploaded. Share links encode the whole chart in the URL.
+  Built as a free community tool; concept credit to
+  <a href="https://tyfromtheinternet.com/not-everything-is-for-you/" target="_blank" rel="noopener">Ty from the Internet</a>.
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+(function(){
+  // ---------- geometry ----------
+  const W=900, H=600;
+  const M={l:96, r:56, t:96, b:96};
+  const plotL=M.l, plotR=W-M.r, plotT=M.t, plotB=H-M.b;
+  const plotW=plotR-plotL, plotH=plotB-plotT;
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const r1=n=>Math.round(n*10)/10;
+  const colX=(i,n)=> n<=1 ? plotL : plotL + (i/(n-1))*plotW;
+  const valY=v=> plotB - clamp(v,0,1)*plotH;
+  const yToVal=py=> clamp((plotB-py)/plotH, 0, 1);
+  const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+  // ---------- state ----------
+  function defaultState(){
+    return {
+      title:"Caffeine", emoji:"☕", maxAge:90,
+      axis:{yTop:"For me", yBottom:"Not for me", xLeft:"Birth", xRight:"Age"},
+      colors:{bg:"#fffdf7", grid:"#e7e0d0", line:"#e4572e", text:"#2b2b2b"},
+      columns:9,
+      points:[0.1,0.15,0.5,0.82,0.9,0.85,0.72,0.55,0.4].map(y=>({y,corner:false}))
+    };
+  }
+  let state = defaultState();
+
+  const PRESETS=[
+    {label:"☕ Caffeine", s:{title:"Caffeine",emoji:"☕",maxAge:90,points:[0.1,0.15,0.5,0.82,0.9,0.85,0.72,0.55,0.4]}},
+    {label:"😴 Naps", s:{title:"Naps",emoji:"😴",maxAge:90,points:[0.95,0.7,0.42,0.25,0.2,0.32,0.5,0.75,0.92]}},
+    {label:"🎢 Roller coasters", s:{title:"Roller coasters",emoji:"🎢",maxAge:90,points:[0.05,0.35,0.88,0.95,0.8,0.6,0.4,0.25,0.12]}},
+    {label:"🤘 Mosh pits", s:{title:"Mosh pits",emoji:"🤘",maxAge:90,points:[0.02,0.06,0.62,0.95,0.7,0.18,0.08,0.05,0.03],corners:[3]}},
+    {label:"🥦 Vegetables", s:{title:"Vegetables",emoji:"🥦",maxAge:90,points:[0.15,0.12,0.3,0.45,0.6,0.7,0.78,0.85,0.9]}}
+  ];
+
+  // ---------- persistence / sharing ----------
+  const LS_KEY="fnfm.state.v1";
+  function compact(s){
+    return {t:s.title, e:s.emoji, m:s.maxAge, n:s.columns,
+      a:[s.axis.yTop,s.axis.yBottom,s.axis.xLeft,s.axis.xRight],
+      c:[s.colors.bg,s.colors.grid,s.colors.line,s.colors.text],
+      p:s.points.map(pt=>[r1000(pt.y), pt.corner?1:0])};
+  }
+  function r1000(n){return Math.round(n*1000)/1000;}
+  function expand(o){
+    const d=defaultState();
+    try{
+      return {
+        title:o.t??d.title, emoji:o.e??d.emoji, maxAge:o.m??d.maxAge,
+        columns:o.n??(o.p?o.p.length:d.columns),
+        axis:{yTop:o.a?.[0]??d.axis.yTop, yBottom:o.a?.[1]??d.axis.yBottom, xLeft:o.a?.[2]??d.axis.xLeft, xRight:o.a?.[3]??d.axis.xRight},
+        colors:{bg:o.c?.[0]??d.colors.bg, grid:o.c?.[1]??d.colors.grid, line:o.c?.[2]??d.colors.line, text:o.c?.[3]??d.colors.text},
+        points:(o.p||d.points.map(p=>[p.y,0])).map(a=>({y:clamp(+a[0]||0,0,1), corner:!!a[1]}))
+      };
+    }catch(e){ return d; }
+  }
+  function encode(s){
+    const json=JSON.stringify(compact(s));
+    return btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+  function decode(str){
+    let b=str.replace(/-/g,'+').replace(/_/g,'/'); while(b.length%4)b+='=';
+    return expand(JSON.parse(decodeURIComponent(escape(atob(b)))));
+  }
+  function persist(){
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(compact(state))); }catch(e){}
+    try{ history.replaceState(null,"", "#s="+encode(state)); }catch(e){}
+  }
+
+  // ---------- rendering ----------
+  const svg=document.getElementById('chart');
+
+  function linePath(P){
+    if(!P.length) return "";
+    let d=`M ${r1(P[0].x)} ${r1(P[0].y)}`;
+    for(let i=0;i<P.length-1;i++){
+      const p1=P[i], p2=P[i+1];
+      if(p1.corner||p2.corner){ d+=` L ${r1(p2.x)} ${r1(p2.y)}`; continue; }
+      let p0=P[i-1]||p1, p3=P[i+2]||p2;
+      if(p0.corner) p0=p1;
+      if(p3.corner) p3=p2;
+      const c1x=p1.x+(p2.x-p0.x)/6, c2x=p2.x-(p3.x-p1.x)/6;
+      let c1y=clamp(p1.y+(p2.y-p0.y)/6, plotT, plotB);
+      let c2y=clamp(p2.y-(p3.y-p1.y)/6, plotT, plotB);
+      d+=` C ${r1(c1x)} ${r1(c1y)}, ${r1(c2x)} ${r1(c2y)}, ${r1(p2.x)} ${r1(p2.y)}`;
+    }
+    return d;
+  }
+
+  function render(){
+    const c=state.colors, n=state.points.length;
+    const P=state.points.map((pt,i)=>({x:colX(i,n), y:valY(pt.y), corner:pt.corner}));
+    const cx=(plotL+plotR)/2;
+    let g="";
+
+    // background
+    g+=`<rect x="0" y="0" width="${W}" height="${H}" fill="${c.bg}"/>`;
+
+    // grid: vertical (one per column) + horizontal thirds
+    for(let i=0;i<n;i++){ const x=r1(colX(i,n));
+      g+=`<line x1="${x}" y1="${plotT}" x2="${x}" y2="${plotB}" stroke="${c.grid}" stroke-width="${i===0?2:1}"/>`; }
+    for(let k=0;k<=4;k++){ const y=r1(plotT+k/4*plotH);
+      g+=`<line x1="${plotL}" y1="${y}" x2="${plotR}" y2="${y}" stroke="${c.grid}" stroke-width="${k===4?2:1}"/>`; }
+
+    // title + emoji
+    g+=`<text x="${cx}" y="46" text-anchor="middle" font-size="34" font-weight="700" fill="${c.text}"
+         font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">${state.emoji?esc(state.emoji)+' ':''}${esc(state.title)}</text>`;
+
+    // Y axis labels (rotated along left edge)
+    g+=`<text x="26" y="${plotT+14}" transform="rotate(-90 26 ${plotT+14})" text-anchor="end" font-size="17" font-weight="600" fill="${c.text}" font-family="system-ui,sans-serif">${esc(state.axis.yTop)}</text>`;
+    g+=`<text x="26" y="${plotB}" transform="rotate(-90 26 ${plotB})" text-anchor="start" font-size="17" font-weight="600" fill="${c.text}" font-family="system-ui,sans-serif">${esc(state.axis.yBottom)}</text>`;
+
+    // X axis labels: start (left tick), max age (right tick), centered title
+    g+=`<text x="${plotL}" y="${plotB+30}" text-anchor="middle" font-size="16" fill="${c.text}" font-family="system-ui,sans-serif">${esc(state.axis.xLeft)}</text>`;
+    g+=`<text x="${plotR}" y="${plotB+30}" text-anchor="middle" font-size="16" fill="${c.text}" font-family="system-ui,sans-serif">${esc(String(state.maxAge))}</text>`;
+    g+=`<text x="${cx}" y="${plotB+58}" text-anchor="middle" font-size="17" font-weight="600" fill="${c.text}" font-family="system-ui,sans-serif">${esc(state.axis.xRight)}</text>`;
+
+    // the line
+    g+=`<path d="${linePath(P)}" fill="none" stroke="${c.line}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    // handles (hidden from export via class)
+    for(let i=0;i<P.length;i++){ const p=P[i];
+      if(p.corner){
+        const s=10;
+        g+=`<rect class="handle export-hide" data-i="${i}" tabindex="0" role="slider" aria-label="Point ${i+1}"
+             x="${r1(p.x-s)}" y="${r1(p.y-s)}" width="${s*2}" height="${s*2}" transform="rotate(45 ${r1(p.x)} ${r1(p.y)})"
+             fill="#fff" stroke="${c.line}" stroke-width="3"/>`;
+      }else{
+        g+=`<circle class="handle export-hide" data-i="${i}" tabindex="0" role="slider" aria-label="Point ${i+1}"
+             cx="${r1(p.x)}" cy="${r1(p.y)}" r="9" fill="#fff" stroke="${c.line}" stroke-width="3"/>`;
+      }
+    }
+
+    svg.innerHTML=g;
+    if(focusIdx!=null){ const h=svg.querySelector(`.handle[data-i="${focusIdx}"]`); if(h) h.focus({preventScroll:true}); }
+    persist();
+  }
+
+  // ---------- interaction ----------
+  let drag=null;          // {i, startClientY, moved}
+  let focusIdx=null;
+
+  function eventToVal(e){
+    const rect=svg.getBoundingClientRect();
+    const svgY=(e.clientY-rect.top)/rect.height*H;
+    return yToVal(svgY);
+  }
+
+  svg.addEventListener('pointerdown', e=>{
+    const h=e.target.closest('.handle'); if(!h) return;
+    const i=+h.dataset.i;
+    focusIdx=i;
+    drag={i, startClientY:e.clientY, moved:false};
+    svg.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  svg.addEventListener('pointermove', e=>{
+    if(!drag) return;
+    if(Math.abs(e.clientY-drag.startClientY)>3) drag.moved=true;
+    if(drag.moved){ state.points[drag.i].y=eventToVal(e); render(); }
+  });
+  svg.addEventListener('pointerup', e=>{
+    if(!drag) return;
+    if(!drag.moved){ // treated as a click -> toggle sharp corner
+      state.points[drag.i].corner=!state.points[drag.i].corner; render();
+    }
+    try{ svg.releasePointerCapture(e.pointerId); }catch(_){}
+    drag=null;
+  });
+  svg.addEventListener('keydown', e=>{
+    const h=e.target.closest('.handle'); if(!h) return;
+    const i=+h.dataset.i; focusIdx=i;
+    if(e.key==='ArrowUp'){ state.points[i].y=clamp(state.points[i].y+0.02,0,1); render(); e.preventDefault(); }
+    else if(e.key==='ArrowDown'){ state.points[i].y=clamp(state.points[i].y-0.02,0,1); render(); e.preventDefault(); }
+    else if(e.key===' '||e.key==='Enter'){ state.points[i].corner=!state.points[i].corner; render(); e.preventDefault(); }
+  });
+
+  // ---------- controls ----------
+  const $=id=>document.getElementById(id);
+  function resample(pts,nn){
+    const m=pts.length, out=[];
+    for(let i=0;i<nn;i++){ const x=(m<=1?0:(i/(nn-1))*(m-1)); const lo=Math.floor(x), hi=Math.min(m-1,lo+1), f=x-lo;
+      out.push({y:pts[lo].y*(1-f)+pts[hi].y*f, corner:false}); }
+    return out;
+  }
+  function syncControls(){
+    $('c-title').value=state.title;
+    $('c-emoji').value=state.emoji;
+    $('c-maxage').value=state.maxAge;
+    $('c-cols').value=state.columns;
+    $('c-cols-out').textContent=state.columns;
+    $('c-ytop').value=state.axis.yTop;
+    $('c-ybot').value=state.axis.yBottom;
+    $('c-xleft').value=state.axis.xLeft;
+    $('c-xright').value=state.axis.xRight;
+    $('c-bg').value=state.colors.bg;
+    $('c-grid').value=state.colors.grid;
+    $('c-line').value=state.colors.line;
+    $('c-text').value=state.colors.text;
+  }
+  function bindControls(){
+    $('c-title').addEventListener('input',e=>{state.title=e.target.value; render();});
+    $('c-emoji').addEventListener('input',e=>{state.emoji=e.target.value; render();});
+    $('c-maxage').addEventListener('input',e=>{const v=parseInt(e.target.value,10); state.maxAge=isNaN(v)?state.maxAge:clamp(v,1,130); render();});
+    $('c-cols').addEventListener('input',e=>{
+      const nn=+e.target.value; $('c-cols-out').textContent=nn;
+      state.points=resample(state.points,nn); state.columns=nn; render();
+    });
+    $('c-ytop').addEventListener('input',e=>{state.axis.yTop=e.target.value; render();});
+    $('c-ybot').addEventListener('input',e=>{state.axis.yBottom=e.target.value; render();});
+    $('c-xleft').addEventListener('input',e=>{state.axis.xLeft=e.target.value; render();});
+    $('c-xright').addEventListener('input',e=>{state.axis.xRight=e.target.value; render();});
+    ['bg','grid','line','text'].forEach(k=>$('c-'+k).addEventListener('input',e=>{state.colors[k]=e.target.value; render();}));
+
+    const pc=$('presets');
+    PRESETS.forEach(p=>{
+      const b=document.createElement('button'); b.textContent=p.label;
+      b.addEventListener('click',()=>{
+        const d=defaultState();
+        state={ ...d, ...{
+          title:p.s.title, emoji:p.s.emoji, maxAge:p.s.maxAge||d.maxAge,
+          columns:p.s.points.length,
+          axis:{...d.axis},
+          colors:{...d.colors},
+          points:p.s.points.map((y,i)=>({y, corner:(p.s.corners||[]).includes(i)}))
+        }};
+        syncControls(); render();
+      });
+      pc.appendChild(b);
+    });
+  }
+
+  // ---------- export ----------
+  function svgString(){
+    const clone=svg.cloneNode(true);
+    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    clone.setAttribute('width',W); clone.setAttribute('height',H);
+    clone.querySelectorAll('.export-hide').forEach(n=>n.remove());
+    return '<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(clone);
+  }
+  function slug(s){return (s||'chart').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'chart';}
+  function download(blob,name){
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  function pngBlob(scale){
+    return new Promise((resolve,reject)=>{
+      const xml=svgString();
+      const src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml);
+      const img=new Image();
+      img.onload=()=>{
+        const cv=document.createElement('canvas'); cv.width=W*scale; cv.height=H*scale;
+        const ctx=cv.getContext('2d'); ctx.scale(scale,scale); ctx.drawImage(img,0,0,W,H);
+        cv.toBlob(b=> b?resolve(b):reject(new Error('toBlob failed')), 'image/png');
+      };
+      img.onerror=()=>reject(new Error('image load failed'));
+      img.src=src;
+    });
+  }
+  $('dl-png').addEventListener('click', async()=>{
+    try{ const b=await pngBlob(2); download(b, slug(state.title)+'.png'); toast('PNG downloaded'); }
+    catch(e){ toast('Could not export PNG'); }
+  });
+  $('dl-svg').addEventListener('click', ()=>{
+    download(new Blob([svgString()],{type:'image/svg+xml'}), slug(state.title)+'.svg'); toast('SVG downloaded');
+  });
+  $('copy-img').addEventListener('click', async()=>{
+    try{
+      const b=await pngBlob(2);
+      await navigator.clipboard.write([new ClipboardItem({'image/png':b})]);
+      toast('Image copied to clipboard');
+    }catch(e){
+      try{ await navigator.clipboard.writeText(location.href); toast('Image copy unsupported — link copied instead'); }
+      catch(_){ toast('Copy not supported in this browser'); }
+    }
+  });
+  $('copy-link').addEventListener('click', async()=>{
+    persist();
+    try{ await navigator.clipboard.writeText(location.href); toast('Share link copied'); }
+    catch(e){ toast('Copy failed — use the address bar'); }
+  });
+  $('reset').addEventListener('click', ()=>{
+    if(!confirm('Reset the chart to a blank flat line?')) return;
+    state=defaultState(); state.points=state.points.map(()=>({y:0.5,corner:false}));
+    state.title="Untitled"; state.emoji="";
+    syncControls(); render();
+  });
+
+  // ---------- toast ----------
+  let toastT=null; const toastEl=$('toast');
+  function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show');
+    clearTimeout(toastT); toastT=setTimeout(()=>toastEl.classList.remove('show'),1900); }
+
+  // ---------- init ----------
+  function init(){
+    let loaded=null;
+    if(location.hash.startsWith('#s=')){ try{ loaded=decode(location.hash.slice(3)); }catch(e){} }
+    if(!loaded){ try{ const raw=localStorage.getItem(LS_KEY); if(raw) loaded=expand(JSON.parse(raw)); }catch(e){} }
+    if(loaded) state=loaded;
+    bindControls(); syncControls(); render();
+  }
+  init();
+})();
+</script>
+</body>
+</html>
