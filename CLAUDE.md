@@ -37,7 +37,7 @@ Git can't undo a commit that overwrote someone else's uncommitted edits — that
 
 Key pieces inside the `<script>` (all in one IIFE):
 
-- **`state`** is the single source of truth: `{ title, emoji, maxAge, axis{yTop,yBottom,xLeft,xRight}, colors{bg,grid,line,text}, columns, points:[{y,corner}] }`. `y` is `0..1` (0 = bottom). One `point` per grid column.
+- **`state`** is the single source of truth: `{ title, emoji, maxAge, axis{yTop,yBottom,xLeft,xRight}, colors{bg,grid,line,text}, columns, xSteps, ySteps, points:[{y,corner}] }`. `y` is `0..1` (0 = bottom). One `point` per handle (`columns` of them). `xSteps`/`ySteps` are the number of labeled axis divisions (age numbers along X, percentages up Y) and are independent of the handle count.
 - **`render()`** is the one render path. Every edit mutates `state`, then calls `render()`, which rebuilds the SVG's `innerHTML`, updates the shareable URL (`history.replaceState`), and saves to `localStorage`. If you add a feature, route it through `state` → `render()` — don't patch the DOM out-of-band.
 - **`linePath(P)`** builds the line's `d`. A segment is a straight `L` if either endpoint is a `corner`; otherwise a smooth Catmull-Rom cubic (`C`) with control-point Y clamped to the plot box so it can't overshoot past 0/1. This is what makes "click a handle → sharp corner" work.
 - **Interaction** uses Pointer Events delegated on the `<svg>` (mouse + touch). Drag = change `y`; a press that doesn't move (< 3px) = click = toggle that point's `corner`. Pointer capture is on the `<svg>` root, **not** the handle — handles are destroyed on every re-render, so capturing them would break mid-drag.

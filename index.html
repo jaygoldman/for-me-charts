@@ -113,6 +113,23 @@
       </div>
     </div>
 
+    <div class="row">
+      <div class="field">
+        <label>Age steps (X)</label>
+        <div class="slider-row">
+          <input id="c-xsteps" type="range" min="1" max="20" step="1">
+          <output id="c-xsteps-out"></output>
+        </div>
+      </div>
+      <div class="field">
+        <label>Level steps (Y)</label>
+        <div class="slider-row">
+          <input id="c-ysteps" type="range" min="1" max="12" step="1">
+          <output id="c-ysteps-out"></output>
+        </div>
+      </div>
+    </div>
+
     <h2 style="margin-top:6px">Axis labels</h2>
     <div class="row">
       <div class="field"><label for="c-ytop">Y top</label><input id="c-ytop" type="text" autocomplete="off"></div>
@@ -154,7 +171,9 @@
 
 <footer>
   Runs entirely in your browser — nothing is uploaded. Share links encode the whole chart in the URL.
-  Built as a free community tool; concept credit to
+  Built as a free community tool by
+  <a href="https://jaygoldman.com" target="_blank" rel="noopener">Jay Goldman</a> and
+  <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a>. Concept credit to
   <a href="https://tyfromtheinternet.com/not-everything-is-for-you/" target="_blank" rel="noopener">Ty from the Internet</a>.
 </footer>
 
@@ -181,7 +200,7 @@
       title:"Caffeine", emoji:"☕", maxAge:90,
       axis:{yTop:"For me", yBottom:"Not for me", xLeft:"Birth", xRight:"Age"},
       colors:{bg:"#fffdf7", grid:"#e7e0d0", line:"#e4572e", text:"#2b2b2b"},
-      columns:9,
+      columns:9, xSteps:9, ySteps:4,
       points:[0.1,0.15,0.5,0.82,0.9,0.85,0.72,0.55,0.4].map(y=>({y,corner:false}))
     };
   }
@@ -198,7 +217,7 @@
   // ---------- persistence / sharing ----------
   const LS_KEY="fnfm.state.v1";
   function compact(s){
-    return {t:s.title, e:s.emoji, m:s.maxAge, n:s.columns,
+    return {t:s.title, e:s.emoji, m:s.maxAge, n:s.columns, xs:s.xSteps, ys:s.ySteps,
       a:[s.axis.yTop,s.axis.yBottom,s.axis.xLeft,s.axis.xRight],
       c:[s.colors.bg,s.colors.grid,s.colors.line,s.colors.text],
       p:s.points.map(pt=>[r1000(pt.y), pt.corner?1:0])};
@@ -210,6 +229,7 @@
       return {
         title:o.t??d.title, emoji:o.e??d.emoji, maxAge:o.m??d.maxAge,
         columns:o.n??(o.p?o.p.length:d.columns),
+        xSteps:clamp(o.xs??d.xSteps,1,20), ySteps:clamp(o.ys??d.ySteps,1,12),
         axis:{yTop:o.a?.[0]??d.axis.yTop, yBottom:o.a?.[1]??d.axis.yBottom, xLeft:o.a?.[2]??d.axis.xLeft, xRight:o.a?.[3]??d.axis.xRight},
         colors:{bg:o.c?.[0]??d.colors.bg, grid:o.c?.[1]??d.colors.grid, line:o.c?.[2]??d.colors.line, text:o.c?.[3]??d.colors.text},
         points:(o.p||d.points.map(p=>[p.y,0])).map(a=>({y:clamp(+a[0]||0,0,1), corner:!!a[1]}))
@@ -258,24 +278,29 @@
     // background
     g+=`<rect x="0" y="0" width="${W}" height="${H}" fill="${c.bg}"/>`;
 
-    // grid: vertical (one per column) + horizontal thirds
-    for(let i=0;i<n;i++){ const x=r1(colX(i,n));
-      g+=`<line x1="${x}" y1="${plotT}" x2="${x}" y2="${plotB}" stroke="${c.grid}" stroke-width="${i===0?2:1}"/>`; }
-    for(let k=0;k<=4;k++){ const y=r1(plotT+k/4*plotH);
-      g+=`<line x1="${plotL}" y1="${y}" x2="${plotR}" y2="${y}" stroke="${c.grid}" stroke-width="${k===4?2:1}"/>`; }
+    const xs=state.xSteps, ys=state.ySteps;
+    const FF='font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif"';
+
+    // grid + step ticks: one vertical line per X step, one horizontal per Y step
+    for(let k=0;k<=xs;k++){ const x=r1(plotL+k/xs*plotW);
+      g+=`<line x1="${x}" y1="${plotT}" x2="${x}" y2="${plotB}" stroke="${c.grid}" stroke-width="${k===0?2:1}"/>`; }
+    for(let k=0;k<=ys;k++){ const y=r1(plotB-k/ys*plotH);
+      g+=`<line x1="${plotL}" y1="${y}" x2="${plotR}" y2="${y}" stroke="${c.grid}" stroke-width="${k===0?2:1}"/>`; }
 
     // title + emoji
-    g+=`<text x="${cx}" y="46" text-anchor="middle" font-size="34" font-weight="700" fill="${c.text}"
-         font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">${state.emoji?esc(state.emoji)+' ':''}${esc(state.title)}</text>`;
+    g+=`<text x="${cx}" y="46" text-anchor="middle" font-size="34" font-weight="700" fill="${c.text}" ${FF}>${state.emoji?esc(state.emoji)+' ':''}${esc(state.title)}</text>`;
 
-    // Y axis labels (rotated along left edge)
-    g+=`<text x="26" y="${plotT+14}" transform="rotate(-90 26 ${plotT+14})" text-anchor="end" font-size="17" font-weight="600" fill="${c.text}" font-family="system-ui,sans-serif">${esc(state.axis.yTop)}</text>`;
-    g+=`<text x="26" y="${plotB}" transform="rotate(-90 26 ${plotB})" text-anchor="start" font-size="17" font-weight="600" fill="${c.text}" font-family="system-ui,sans-serif">${esc(state.axis.yBottom)}</text>`;
+    // Y axis: rotated top/bottom descriptors + a percentage label at each Y step
+    g+=`<text x="26" y="${plotT+14}" transform="rotate(-90 26 ${plotT+14})" text-anchor="end" font-size="17" font-weight="600" fill="${c.text}" ${FF}>${esc(state.axis.yTop)}</text>`;
+    g+=`<text x="26" y="${plotB}" transform="rotate(-90 26 ${plotB})" text-anchor="start" font-size="17" font-weight="600" fill="${c.text}" ${FF}>${esc(state.axis.yBottom)}</text>`;
+    for(let k=0;k<=ys;k++){ const y=r1(plotB-k/ys*plotH);
+      g+=`<text x="${plotL-10}" y="${y+5}" text-anchor="end" font-size="13" fill="${c.text}" opacity="0.65" ${FF}>${Math.round(k/ys*100)}%</text>`; }
 
-    // X axis labels: start (left tick), max age (right tick), centered title
-    g+=`<text x="${plotL}" y="${plotB+30}" text-anchor="middle" font-size="16" fill="${c.text}" font-family="system-ui,sans-serif">${esc(state.axis.xLeft)}</text>`;
-    g+=`<text x="${plotR}" y="${plotB+30}" text-anchor="middle" font-size="16" fill="${c.text}" font-family="system-ui,sans-serif">${esc(String(state.maxAge))}</text>`;
-    g+=`<text x="${cx}" y="${plotB+58}" text-anchor="middle" font-size="17" font-weight="600" fill="${c.text}" font-family="system-ui,sans-serif">${esc(state.axis.xRight)}</text>`;
+    // X axis: an age number at each X step (the first tick uses the "X start" label), + centered title
+    for(let k=0;k<=xs;k++){ const x=r1(plotL+k/xs*plotW);
+      const lbl = k===0 ? esc(state.axis.xLeft) : String(Math.round(k/xs*state.maxAge));
+      g+=`<text x="${x}" y="${plotB+28}" text-anchor="middle" font-size="14" fill="${c.text}" ${FF}>${lbl}</text>`; }
+    g+=`<text x="${cx}" y="${plotB+58}" text-anchor="middle" font-size="17" font-weight="600" fill="${c.text}" ${FF}>${esc(state.axis.xRight)}</text>`;
 
     // the line
     g+=`<path d="${linePath(P)}" fill="none" stroke="${c.line}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -351,6 +376,10 @@
     $('c-maxage').value=state.maxAge;
     $('c-cols').value=state.columns;
     $('c-cols-out').textContent=state.columns;
+    $('c-xsteps').value=state.xSteps;
+    $('c-xsteps-out').textContent=state.xSteps;
+    $('c-ysteps').value=state.ySteps;
+    $('c-ysteps-out').textContent=state.ySteps;
     $('c-ytop').value=state.axis.yTop;
     $('c-ybot').value=state.axis.yBottom;
     $('c-xleft').value=state.axis.xLeft;
@@ -368,6 +397,8 @@
       const nn=+e.target.value; $('c-cols-out').textContent=nn;
       state.points=resample(state.points,nn); state.columns=nn; render();
     });
+    $('c-xsteps').addEventListener('input',e=>{const v=+e.target.value; $('c-xsteps-out').textContent=v; state.xSteps=v; render();});
+    $('c-ysteps').addEventListener('input',e=>{const v=+e.target.value; $('c-ysteps-out').textContent=v; state.ySteps=v; render();});
     $('c-ytop').addEventListener('input',e=>{state.axis.yTop=e.target.value; render();});
     $('c-ybot').addEventListener('input',e=>{state.axis.yBottom=e.target.value; render();});
     $('c-xleft').addEventListener('input',e=>{state.axis.xLeft=e.target.value; render();});
