@@ -355,8 +355,13 @@
       }
     }
 
+    // Only restore focus to a handle if a handle actually held focus before this
+    // re-render (e.g. keyboard nudge) — otherwise typing in a text field, which
+    // also calls render(), would have its focus stolen after every keystroke.
+    const ae0=document.activeElement;
+    const refocus = focusIdx!=null && ae0 && ae0.classList && ae0.classList.contains('handle') && svg.contains(ae0);
     svg.innerHTML=g;
-    if(focusIdx!=null){ const h=svg.querySelector(`.handle[data-i="${focusIdx}"]`); if(h) h.focus({preventScroll:true}); }
+    if(refocus){ const h=svg.querySelector(`.handle[data-i="${focusIdx}"]`); if(h) h.focus({preventScroll:true}); }
     persist();
   }
 
