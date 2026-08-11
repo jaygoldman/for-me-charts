@@ -33,38 +33,27 @@ open index.html
 | --- | --- |
 | `index.html` | The entire app — inline CSS + JS, no dependencies, no build step. |
 | `favicon.svg` | Tab icon. |
-| `wrangler.toml` | Cloudflare Pages project config for `wrangler pages deploy`. |
-| `.github/workflows/deploy.yml` | Auto-deploy to Cloudflare Pages on merge to `main`. |
+| `wrangler.toml` | Cloudflare Pages project config (used if you deploy via Wrangler/CI). |
 
 ## Deploy to Cloudflare Pages (zero cost)
 
-There are two ways to deploy. **Pick one** — don't run both, or they'll fight over deployments.
-
-### Option A — Connect the Git repo (simplest, recommended)
+This project deploys via **Cloudflare Pages Git integration** — Cloudflare builds on every push and gives each PR a preview URL, with no CI secrets to manage.
 
 1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
 2. Choose the `jaygoldman/for-me-charts` repo.
 3. Build settings:
+   - **Project name:** `for-me-charts`
+   - **Production branch:** `main`
    - **Framework preset:** `None`
    - **Build command:** *(leave blank)*
    - **Build output directory:** `/`
-4. **Save and Deploy.**
+4. **Save and Deploy.** Production lands at `https://for-me-charts.pages.dev`; pushes to `main` redeploy it, and pull requests get their own preview URLs.
 
-Cloudflare now rebuilds on every push to `main` and creates a **preview URL for every pull request** automatically — no secrets, no Actions. If you use this option, you can delete `.github/workflows/deploy.yml`.
+<details>
+<summary>Alternative: deploy via CI (GitHub Actions) instead of Git integration</summary>
 
-### Option B — Deploy via GitHub Actions (CI-controlled)
-
-The included workflow (`.github/workflows/deploy.yml`) deploys with Wrangler on merge to `main`. One-time setup:
-
-1. Create the Pages project once:
-   ```bash
-   npx wrangler pages project create for-me-charts --production-branch main
-   ```
-2. Add two **GitHub repo secrets** (Settings → Secrets and variables → Actions):
-   - `CLOUDFLARE_API_TOKEN` — a token with the **Cloudflare Pages: Edit** permission ([create one](https://dash.cloudflare.com/profile/api-tokens)).
-   - `CLOUDFLARE_ACCOUNT_ID` — your account ID (right sidebar of any Cloudflare dashboard page).
-
-Merges to `main` now deploy to production; PRs get a preview deployment.
+If you'd rather have CI own deploys, don't connect the repo above. Instead create the project once with `npx wrangler pages project create for-me-charts --production-branch main`, add repo secrets `CLOUDFLARE_API_TOKEN` (token with **Cloudflare Pages: Edit**) and `CLOUDFLARE_ACCOUNT_ID`, and add a workflow that runs `wrangler pages deploy . --project-name=for-me-charts` on push to `main`. Don't run both this and Git integration — they'd double-deploy.
+</details>
 
 ### Custom domain — `formecharts.jaygoldman.com`
 

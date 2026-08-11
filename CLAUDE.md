@@ -53,9 +53,7 @@ No test suite — verify by hand in a browser (`open index.html`). Confirm: line
 
 ## Deploy
 
-Static site on **Cloudflare Pages**. Two mutually exclusive paths (see `README.md` for full steps):
-- **Git integration** (dashboard): auto-deploy on push to `main` + PR previews, no CI secrets. If used, `.github/workflows/deploy.yml` is redundant.
-- **GitHub Actions** (`.github/workflows/deploy.yml`): deploys via `wrangler pages deploy` on merge to `main`; needs repo secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and a pre-existing Pages project named `for-me-charts` (see `wrangler.toml`).
+Static site on **Cloudflare Pages** via **Git integration**: Cloudflare auto-builds on push to `main` (framework preset None, blank build command, output dir `/`) and gives each PR a preview URL — no CI secrets. `wrangler.toml` is kept for anyone who prefers a manual `wrangler pages deploy`. See `README.md` for full steps and the CI alternative.
 
 Custom domain `formecharts.jaygoldman.com` is set in the Pages project's **Custom domains** tab (the zone is on Cloudflare, so the CNAME + cert are automatic).
 
