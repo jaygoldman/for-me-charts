@@ -10,7 +10,7 @@ Inspired by [Ty from the Internet — *"Not Everything Is For You"*](https://tyf
 
 - **Draw by dragging.** The line starts flat at 50%. Drag the handle at each grid line up or down and the curve redraws in real time.
 - **Sharp or smooth.** The line is a smooth hand-drawn curve by default. **Click a handle** to toggle it into a sharp corner for abrupt changes.
-- **Make it yours.** Title, emoji, max age, axis labels, detail (number of handles), and colors (background, grid, line, text).
+- **Make it yours.** Title, emoji, max age, axis labels, per-axis steps (age numbers along the bottom, percentages up the side — one handle sits on each vertical age line), low/high emoji at each axis end, fonts for the title and labels (including handwritten), and colors (background, grid, line, text).
 - **Presets** to start from (caffeine, naps, roller coasters, mosh pits, vegetables).
 - **Export** as PNG (2×), crisp SVG, or copy the image straight to your clipboard.
 - **Share** a link — the entire chart is encoded in the URL, so anyone who opens it sees your exact chart. Autosaves to your browser so a refresh never loses work.
