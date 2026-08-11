@@ -340,9 +340,10 @@
     // title + emoji
     g+=`<text x="${cx}" y="46" text-anchor="middle" font-size="34" font-weight="700" fill="${c.text}" ${FT}>${state.emoji?esc(state.emoji)+' ':''}${esc(state.title)}</text>`;
 
-    // Y axis: one centered rotated label + high/low emoji at the ends (+ optional % numbers)
-    if(state.axis.y) g+=`<text x="26" y="${midY}" transform="rotate(-90 26 ${midY})" text-anchor="middle" font-size="18" font-weight="600" fill="${c.text}" ${FL}>${esc(state.axis.y)}</text>`;
-    const yEmX = nl ? 52 : plotL-24;
+    // Y axis: one centered rotated label in the SAME column as the high/low emoji at the ends
+    // (mirrors the X axis, where the centered label shares the emojis' row), + optional % numbers.
+    const yEmX = nl ? 52 : plotL-26;
+    if(state.axis.y) g+=`<text x="${yEmX}" y="${midY}" transform="rotate(-90 ${yEmX} ${midY})" text-anchor="middle" font-size="18" font-weight="600" fill="${c.text}" ${FL}>${esc(state.axis.y)}</text>`;
     if(ae.yHigh) g+=`<text x="${yEmX}" y="${plotT+16}" text-anchor="middle" font-size="22">${esc(ae.yHigh)}</text>`;
     if(ae.yLow)  g+=`<text x="${yEmX}" y="${plotB}" text-anchor="middle" font-size="22">${esc(ae.yLow)}</text>`;
     if(nl) for(let k=0;k<=ys;k++){ const y=r1(plotB-k/ys*plotH);
